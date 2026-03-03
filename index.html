@@ -3,52 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Secu Asistencia</title>
+    <title>La Secu - Asistencia</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="La Secu">
 
     <style>
         :root { --primary: #1d3557; --success: #25D366; --error: #e63946; --bg: #f0f2f5; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        
-        /* Esta interfaz siempre debe estar visible */
         .app-container { background: white; width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; }
         .header { background: var(--primary); color: white; padding: 25px 15px; text-align: center; }
-        .content { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        
+        .content { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
         #offline-notice { background: #ff9500; color: white; width: 100%; text-align: center; font-size: 0.7rem; padding: 5px; display: none; border-radius: 5px; margin-bottom: 10px; }
-
-        #geo-lock { padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; background: #eee; border: 2px solid #ddd; }
+        #geo-lock { padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; background: #eee; border: 2px solid #ddd; font-size: 0.9rem; }
         .valid { background: #d4edda !important; color: #155724 !important; border-color: #c3e6cb !important; }
-        
         #main-form { display: none; flex-direction: column; gap: 12px; }
-        select, textarea { padding: 15px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; width: 100%; }
+        select, textarea { padding: 15px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; width: 100%; background: #fff; }
         .btn { padding: 18px; border-radius: 12px; border: none; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; }
         .btn-gps { background: var(--primary); }
         .btn-success { background: var(--success); }
         .btn-error { background: var(--error); }
-        #obs-area { display: none; flex-direction: column; gap: 10px; margin-top: 10px; border-top: 2px solid #eee; padding-top: 15px; }
-        
-        .history-container { width: 100%; max-width: 400px; margin-top: 20px; }
-        .log-card { background: white; padding: 10px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--primary); font-size: 0.8rem; }
+        .log-card { background: white; width: 100%; max-width: 400px; padding: 12px; border-radius: 12px; margin-top: 8px; display: flex; justify-content: space-between; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
 
-<div id="offline-notice">TRABAJANDO SIN CONEXIÓN</div>
+<div id="offline-notice">TRABAJANDO SIN CONEXIÓN (OFFLINE)</div>
 
 <div class="app-container">
     <div class="header">
         <h1 style="margin:0; font-size:1.2rem;">Papelería La Secu</h1>
-        <p style="margin:5px 0 0; font-size:0.8rem; opacity:0.8;">Asistencia Local 2026</p>
+        <p style="margin:5px 0 0; font-size:0.8rem; opacity:0.8;">Control de Asistencia</p>
     </div>
 
     <div class="content">
-        <button id="btnStart" class="btn btn-gps" onclick="activarSensor()">ACTIVAR GPS / VALIDAR</button>
-        <div id="geo-lock">SISTEMA LISTO</div>
+        <button id="btnStart" class="btn btn-gps" onclick="activarSensor()">1. ACTIVAR GPS / VALIDAR</button>
+        <div id="geo-lock">SISTEMA ESPERANDO SENSOR</div>
 
         <div id="main-form">
             <select id="employee">
@@ -62,7 +53,7 @@
                 <button class="btn btn-error" onclick="abrirObs()">REGISTRAR SALIDA</button>
             </div>
 
-            <div id="obs-area">
+            <div id="obs-area" style="display:none; flex-direction:column; gap:10px;">
                 <textarea id="txtObs" rows="3" placeholder="Observaciones de salida..."></textarea>
                 <button class="btn btn-error" onclick="registrar('SALIDA')">ENVIAR Y GUARDAR</button>
             </div>
@@ -70,38 +61,56 @@
     </div>
 </div>
 
-<div class="history-container">
-    <div id="history-list"></div>
-</div>
+<div id="history-list" style="width:100%; max-width:400px; margin-top:15px;"></div>
 
 <script>
-    const CONFIG = { lat: 18.906744582104, lon: -103.868403104, rango: 130, tel: "523339019091" };
+    const CONFIG = { lat: 18.906744582104, lon: -103.868403104, rango: 150, tel: "523339019091" };
 
-    // Registro del Service Worker para funcionamiento Offline
+    // REGISTRO DE SERVICE WORKER REFORZADO
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(() => console.log("Offline Ready"));
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .then(reg => {
+            reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        location.reload(); // Auto-actualiza para activar offline
+                    }
+                };
+            };
+        });
     }
 
-    // Detectar internet
-    window.addEventListener('offline', () => document.getElementById('offline-notice').style.display = 'block');
-    window.addEventListener('online', () => document.getElementById('offline-notice').style.display = 'none');
-
     function activarSensor() {
-        document.getElementById('btnStart').style.display = "none";
-        document.getElementById('geo-lock').innerHTML = "BUSCANDO SATÉLITES...";
-        navigator.geolocation.watchPosition(verificar, () => alert("Error GPS. Activa ubicación."), { enableHighAccuracy: true });
+        const lock = document.getElementById('geo-lock');
+        lock.innerHTML = "BUSCANDO SATÉLITES... (Espera)";
+        document.getElementById('btnStart').style.opacity = "0.5";
+
+        // Configuración especial para iPhones antiguos
+        const geoOptions = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.watchPosition(verificar, (err) => {
+            console.error(err);
+            lock.innerHTML = "⚠️ ERROR: Activa GPS en Ajustes > Safari";
+        }, geoOptions);
     }
 
     function verificar(pos) {
         const d = calcDist(pos.coords.latitude, pos.coords.longitude, CONFIG.lat, CONFIG.lon);
         const lock = document.getElementById('geo-lock');
         const form = document.getElementById('main-form');
+        document.getElementById('btnStart').style.display = "none";
+
         if (d <= CONFIG.rango) {
-            lock.innerHTML = `UBICACIÓN OK (${Math.round(d)}m)`;
+            lock.innerHTML = `✅ UBICACIÓN OK (${Math.round(d)}m)`;
             lock.className = "valid";
             form.style.display = "flex";
         } else {
-            lock.innerHTML = `FUERA DE RANGO (${Math.round(d)}m)`;
+            lock.innerHTML = `📍 FUERA DE RANGO (${Math.round(d)}m)`;
             lock.className = "";
             form.style.display = "none";
         }
@@ -128,10 +137,9 @@
         const fecha = ahora.toLocaleDateString();
         const obs = document.getElementById('txtObs').value || "Sin notas";
 
-        // Guardar localmente (esto funciona SIEMPRE, con o sin internet)
-        let historial = JSON.parse(localStorage.getItem('secu_v3')) || [];
+        let historial = JSON.parse(localStorage.getItem('secu_vfinal')) || [];
         historial.unshift({ emp, tipo, hora, fecha });
-        localStorage.setItem('secu_v3', JSON.stringify(historial.slice(0,20)));
+        localStorage.setItem('secu_vfinal', JSON.stringify(historial.slice(0,20)));
         renderHistory();
 
         let msg = `📍 *LA SECU*\n👤 ${emp}\n🔘 ${tipo}\n🕒 ${hora}\n📅 ${fecha}\n📝 Obs: ${obs}`;
@@ -139,7 +147,7 @@
     }
 
     function renderHistory() {
-        const h = JSON.parse(localStorage.getItem('secu_v3')) || [];
+        const h = JSON.parse(localStorage.getItem('secu_vfinal')) || [];
         document.getElementById('history-list').innerHTML = h.map(r => `
             <div class="log-card">
                 <div><b>${r.emp}</b><br><small>${r.fecha} ${r.hora}</small></div>
@@ -151,4 +159,5 @@
 </script>
 </body>
 </html>
+
 
