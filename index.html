@@ -35,10 +35,11 @@
         #input-area { display: none; flex-direction: column; gap: 12px; margin-top: 10px; border-top: 2px solid #f5f5f5; padding-top: 15px; }
         
         .history-container { width: 100%; max-width: 400px; margin-top: 20px; }
-        .log-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-left: 6px solid var(--primary); cursor: pointer; }
+        .log-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-left: 6px solid var(--primary); cursor: pointer; }
         .log-header { display: flex; justify-content: space-between; align-items: center; }
         .log-body { display: none; background: #fdfdfd; padding: 12px; border-radius: 10px; margin-top: 10px; font-size: 0.8rem; border: 1px solid #eee; white-space: pre-wrap; color: #333; line-height: 1.4; }
         .type-tag { font-size: 0.7rem; font-weight: 800; padding: 5px 10px; border-radius: 8px; }
+        .btn-reenviar { margin-top: 12px; width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid var(--success); background: white; color: var(--success); font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -46,7 +47,7 @@
 <div class="app-container">
     <div class="header">
         <h1 style="margin:0; font-size:1.3rem;">PAPELERÍA LA SECU</h1>
-        <p style="margin:5px 0 0; font-size:0.8rem; opacity:0.8;">Registro de Asistencia</p>
+        <p style="margin:5px 0 0; font-size:0.8rem; opacity:0.8;">Asistencia Digital</p>
     </div>
 
     <div class="content">
@@ -55,9 +56,9 @@
 
         <div id="main-form">
             <div>
-                <label>NOMBRE DEL EMPLEADO</label>
+                <label>EMPLEADO</label>
                 <select id="employee">
-                    <option value="">-- Selecciona tu nombre --</option>
+                    <option value="">-- Elige tu nombre --</option>
                     <option value="Empleado 1">Empleado 1</option>
                     <option value="Empleado 2">Empleado 2</option>
                     <option value="Empleado 3">Empleado 3</option>
@@ -71,16 +72,16 @@
 
             <div id="input-area">
                 <label id="label-tipo">COMENTARIOS</label>
-                <textarea id="txtObs" rows="3" placeholder="Comentarios / Observaciones..."></textarea>
+                <textarea id="txtObs" rows="3" placeholder="Comentarios / Observaciones"></textarea>
                 <button id="btnFinal" class="btn" onclick="registrar()">CONFIRMAR Y ENVIAR</button>
-                <button onclick="location.reload()" style="background:none; border:none; color:#999; text-decoration:underline; font-size:0.75rem; margin-top:10px;">Cancelar</button>
+                <button onclick="location.reload()" style="background:none; border:none; color:#999; text-decoration:underline; font-size:0.75rem; margin-top:10px; width:100%;">Cancelar</button>
             </div>
         </div>
     </div>
 </div>
 
 <div class="history-container">
-    <p style="font-size: 0.75rem; color: #888; text-align: center; margin-bottom: 10px;">Toca un registro para auditar</p>
+    <p style="font-size: 0.75rem; color: #888; text-align: center; margin-bottom: 10px;">Historial de registros (Toca para expandir)</p>
     <div id="history-list"></div>
 </div>
 
@@ -101,7 +102,7 @@
         const form = document.getElementById('main-form');
         document.getElementById('btnStart').style.display = "none";
         if (d <= CONFIG.rango) {
-            lock.innerHTML = `✅ EN EL NEGOCIO (${Math.round(d)}m)`;
+            lock.innerHTML = `✅ EN SITIO (${Math.round(d)}m)`;
             lock.className = "valid";
             form.style.display = "flex";
         } else {
@@ -146,11 +147,18 @@
         localStorage.setItem('secu_vAudit', JSON.stringify(logs.slice(0,30)));
         renderHistory();
 
-        // COPIAR Y ENVIAR
-        navigator.clipboard.writeText(reporte).then(() => {
-            if (!navigator.onLine) alert("📍 COPIADO AL TELÉFONO. Pega el mensaje en WhatsApp.");
-        });
-        window.location.href = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(reporte)}`;
+        ejecutarEnvio(reporte);
+    }
+
+    function ejecutarEnvio(texto) {
+        // COPIAR AL PORTAPAPELES
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(texto).then(() => {
+                if (!navigator.onLine) alert("📍 REPORTE COPIADO.\nWhatsApp no pegará el texto solo sin internet. Al abrir el chat, deja presionado y elige 'PEGAR'.");
+            });
+        }
+        // LANZAR WHATSAPP
+        window.location.href = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(texto)}`;
     }
 
     function renderHistory() {
@@ -165,7 +173,8 @@
                     <span class="type-tag" style="background:${l.tipo=='ENTRADA'?'#e7f9ee':'#fdecef'}; color:${l.tipo=='ENTRADA'?'#25D366':'#e63946'}">${l.tipo}</span>
                 </div>
                 <div id="details-${i}" class="log-body">
-                    <b>REPORTE INALTERABLE:</b><hr style="border:0; border-top:1px solid #eee; margin:5px 0;">${l.reporte}
+                    <b>TEXTO ORIGINAL:</b><hr style="border:0; border-top:1px solid #eee; margin:5px 0;">${l.reporte}
+                    <button class="btn-reenviar" onclick="event.stopPropagation(); reenviar(${i})">📲 REENVIAR A WHATSAPP</button>
                 </div>
             </div>
         `).join('');
@@ -174,6 +183,11 @@
     function toggleLog(i) {
         const el = document.getElementById(`details-${i}`);
         el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function reenviar(idx) {
+        const logs = JSON.parse(localStorage.getItem('secu_vAudit')) || [];
+        ejecutarEnvio(logs[idx].reporte);
     }
 
     renderHistory();
