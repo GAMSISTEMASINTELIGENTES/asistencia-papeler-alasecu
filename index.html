@@ -27,8 +27,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         label { font-size: 0.75rem; font-weight: bold; color: var(--primary); margin-left: 5px; }
-        select, textarea { padding: 18px; border-radius: 15px; border: 2px solid #eee; font-size: 1rem; width: 100%; background: #fdfdfd; outline: none; transition: 0.2s; }
-        select:focus { border-color: var(--primary); }
+        select, textarea { padding: 18px; border-radius: 15px; border: 2px solid #eee; font-size: 1rem; width: 100%; background: #fdfdfd; outline: none; }
 
         .btn { padding: 20px; border-radius: 18px; border: none; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .btn:active { transform: scale(0.96); }
@@ -43,11 +42,12 @@
         .log-name { font-weight: bold; font-size: 0.95rem; display: block; }
         .log-meta { font-size: 0.75rem; color: #888; }
         .type-tag { font-size: 0.7rem; font-weight: 800; padding: 5px 10px; border-radius: 8px; text-transform: uppercase; }
+        .btn-sync { background: #f8f9fa; border: 1px solid #ddd; padding: 5px; border-radius: 5px; font-size: 0.6rem; margin-top: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="offline-notice">⚠️ TRABAJANDO EN MODO OFFLINE</div>
+<div id="offline-notice">⚠️ MODO OFFLINE ACTIVO</div>
 
 <div class="app-container">
     <div class="header">
@@ -57,7 +57,7 @@
 
     <div class="content">
         <button id="btnStart" class="btn btn-gps" onclick="activarSensor()">🔓 VALIDAR UBICACIÓN</button>
-        <div id="geo-lock">SISTEMA BLOQUEADO POR GPS</div>
+        <div id="geo-lock">SISTEMA ESPERANDO GPS</div>
 
         <div id="main-form">
             <div>
@@ -77,7 +77,7 @@
 
             <div id="obs-area">
                 <label>OBSERVACIONES DE SALIDA</label>
-                <textarea id="txtObs" rows="3" placeholder="Ej. Todo en orden, recibí mercancía..."></textarea>
+                <textarea id="txtObs" rows="3" placeholder="Ej. Todo en orden..."></textarea>
                 <button class="btn btn-error" onclick="registrar('SALIDA')">CONFIRMAR Y ENVIAR</button>
                 <button onclick="location.reload()" style="background:none; border:none; color:#888; text-decoration:underline; font-size:0.8rem; margin-top:10px;">Cancelar</button>
             </div>
@@ -95,29 +95,21 @@
         tel: "523339019091" 
     };
 
+    // Service Worker para Offline
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-            reg.onupdatefound = () => {
-                const worker = reg.installing;
-                worker.onstatechange = () => {
-                    if (worker.state === 'installed' && navigator.serviceWorker.controller) location.reload();
-                };
-            };
-        });
+        navigator.serviceWorker.register('./sw.js');
     }
 
+    // Detector de Red
     window.addEventListener('offline', () => document.getElementById('offline-notice').style.display = 'block');
     window.addEventListener('online', () => document.getElementById('offline-notice').style.display = 'none');
 
     function activarSensor() {
         const lock = document.getElementById('geo-lock');
         lock.innerHTML = "📡 CONECTANDO SATÉLITES...";
-        
         const options = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
-
         navigator.geolocation.watchPosition(verificar, (err) => {
-            lock.innerHTML = "❌ GPS NO DETECTADO";
-            alert("Por favor, permite el acceso a la ubicación.");
+            lock.innerHTML = "❌ ERROR GPS";
         }, options);
     }
 
@@ -147,47 +139,71 @@
     }
 
     function abrirObs() {
-        if(!document.getElementById('employee').value) return alert("Selecciona tu nombre primero");
+        if(!document.getElementById('employee').value) return alert("Selecciona tu nombre");
         document.getElementById('action-btns').style.display = "none";
         document.getElementById('obs-area').style.display = "flex";
     }
 
     function registrar(tipo) {
         const emp = document.getElementById('employee').value;
+        if(!emp) return alert("Selecciona tu nombre");
+
         const ahora = new Date();
         const hora = ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const fecha = ahora.toLocaleDateString('es-MX', {day:'2-digit', month:'short'});
         const ts = ahora.getTime();
-        const obs = document.getElementById('txtObs').value || "Sin observaciones";
+        const obs = document.getElementById('txtObs').value || "Sin notas";
 
+        const reg = { emp, tipo, hora, fecha, obs, ts };
         let logs = JSON.parse(localStorage.getItem('secu_vFinal')) || [];
-        logs.unshift({ emp, tipo, hora, fecha, ts });
-        localStorage.setItem('secu_vFinal', JSON.stringify(logs.slice(0,30))); // Guardar últimos 30
+        logs.unshift(reg);
+        localStorage.setItem('secu_vFinal', JSON.stringify(logs.slice(0,30)));
         renderHistory();
 
-        let msg = `🏢 *LA SECU - ASISTENCIA*\n\n👤 *${emp}*\n🔘 *MOVIMIENTO:* ${tipo}\n🕒 *HORA:* ${hora}\n📅 *FECHA:* ${fecha}\n`;
-        if(tipo === 'SALIDA') msg += `📝 *OBS:* ${obs}\n`;
-        msg += `\n✅ _Validado en sitio via GPS_`;
+        // EJECUTAR ENVÍO FORZADO
+        enviarWhatsApp(reg);
+    }
 
-        window.location.href = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(msg)}`;
+    function enviarWhatsApp(reg) {
+        const texto = `🏢 *LA SECU - ASISTENCIA*\n\n👤 *${reg.emp}*\n🔘 *MOVIMIENTO:* ${reg.tipo}\n🕒 *HORA:* ${reg.hora}\n📅 *FECHA:* ${reg.fecha}\n📝 *OBS:* ${reg.obs}\n\n✅ _Validado en sitio via GPS_`;
+        
+        // Protocolo directo para saltar el error de navegador offline
+        const waAppUrl = `whatsapp://send?phone=${CONFIG.tel}&text=${encodeURIComponent(texto)}`;
+        const waWebUrl = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(texto)}`;
+
+        window.location.href = waAppUrl;
+
+        // Respaldo en caso de que el protocolo directo falle
+        setTimeout(() => {
+            window.location.href = waWebUrl;
+        }, 800);
     }
 
     function renderHistory() {
         const logs = JSON.parse(localStorage.getItem('secu_vFinal')) || [];
         const unMes = 30 * 24 * 60 * 60 * 1000;
         const ahora = new Date().getTime();
-        
         const filtrados = logs.filter(l => (ahora - l.ts) < unMes);
-        document.getElementById('history-list').innerHTML = filtrados.map(l => `
+
+        document.getElementById('history-list').innerHTML = filtrados.map((l, i) => `
             <div class="log-card">
                 <div>
                     <span class="log-name">${l.emp}</span>
                     <span class="log-meta">${l.fecha} | ${l.hora}</span>
                 </div>
-                <span class="type-tag" style="color:${l.tipo=='ENTRADA'?'#25D366':'#e63946'}">${l.tipo}</span>
+                <div style="text-align:right">
+                    <span class="type-tag" style="color:${l.tipo=='ENTRADA'?'#25D366':'#e63946'}">${l.tipo}</span><br>
+                    <button class="btn-sync" onclick='reenviar(${i})'>Reenviar WA</button>
+                </div>
             </div>
         `).join('');
     }
+
+    function reenviar(idx) {
+        const logs = JSON.parse(localStorage.getItem('secu_vFinal')) || [];
+        enviarWhatsApp(logs[idx]);
+    }
+
     renderHistory();
 </script>
 </body>
