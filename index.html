@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Asistencia La Secu</title>
-    
+    <title>Auditoría La Secu</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Asistencia">
 
     <style>
         :root { --primary: #1d3557; --success: #25D366; --error: #e63946; --bg: #f0f2f5; }
@@ -15,100 +13,71 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         
         .app-container { background: white; width: 100%; max-width: 400px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); overflow: hidden; }
-        .header { background: var(--primary); color: white; padding: 30px 15px; text-align: center; }
-        .content { padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+        .header { background: var(--primary); color: white; padding: 25px 15px; text-align: center; }
+        .content { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         
-        #offline-notice { background: #ff9500; color: white; width: 100%; text-align: center; font-size: 0.7rem; padding: 6px; display: none; border-radius: 8px; margin-bottom: 10px; font-weight: bold; }
-
-        #geo-lock { padding: 18px; border-radius: 15px; text-align: center; font-weight: bold; background: #f8f9fa; border: 2px dashed #ccc; color: #666; transition: 0.3s; }
+        #geo-lock { padding: 15px; border-radius: 15px; text-align: center; font-weight: bold; background: #f8f9fa; border: 2px dashed #ccc; color: #666; }
         .valid { background: #d4edda !important; color: #155724 !important; border: 2px solid #25D366 !important; }
         
-        #main-form { display: none; flex-direction: column; gap: 15px; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #main-form { display: none; flex-direction: column; gap: 12px; }
+        select, textarea { padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 1rem; width: 100%; outline: none; }
 
-        label { font-size: 0.75rem; font-weight: bold; color: var(--primary); margin-left: 5px; }
-        select, textarea { padding: 18px; border-radius: 15px; border: 2px solid #eee; font-size: 1rem; width: 100%; background: #fdfdfd; outline: none; }
-
-        .btn { padding: 20px; border-radius: 18px; border: none; font-size: 1.1rem; font-weight: bold; color: white; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.96); }
+        .btn { padding: 18px; border-radius: 15px; border: none; font-size: 1rem; font-weight: bold; color: white; cursor: pointer; }
         .btn-gps { background: var(--primary); }
         .btn-success { background: var(--success); }
         .btn-error { background: var(--error); }
         
-        #obs-area { display: none; flex-direction: column; gap: 12px; margin-top: 10px; border-top: 2px solid #f5f5f5; padding-top: 20px; }
-        
-        .history-container { width: 100%; max-width: 400px; margin-top: 25px; }
-        .log-card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .log-name { font-weight: bold; font-size: 0.95rem; display: block; }
-        .log-meta { font-size: 0.75rem; color: #888; }
-        .type-tag { font-size: 0.7rem; font-weight: 800; padding: 5px 10px; border-radius: 8px; text-transform: uppercase; }
-        .btn-sync { background: #f8f9fa; border: 1px solid #ddd; padding: 6px; border-radius: 8px; font-size: 0.65rem; margin-top: 5px; cursor: pointer; font-weight: bold; color: var(--primary); }
+        /* ESTILOS DEL HISTORIAL DE AUDITORÍA */
+        .history-container { width: 100%; max-width: 400px; margin-top: 20px; }
+        .log-card { background: white; padding: 12px; border-radius: 15px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid var(--primary); cursor: pointer; }
+        .log-header { display: flex; justify-content: space-between; align-items: center; }
+        .log-body { display: none; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-top: 10px; font-size: 0.8rem; border: 1px solid #eee; white-space: pre-wrap; color: #444; }
+        .type-tag { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
-<div id="offline-notice">⚠️ TRABAJANDO SIN CONEXIÓN</div>
-
 <div class="app-container">
     <div class="header">
-        <h1 style="margin:0; font-size:1.4rem; letter-spacing: 1px;">PAPELERÍA LA SECU</h1>
-        <p style="margin:5px 0 0; font-size:0.85rem; opacity:0.8;">Control de Asistencia</p>
+        <h1 style="margin:0; font-size:1.2rem;">PAPELERÍA LA SECU</h1>
+        <p style="margin:5px 0 0; font-size:0.8rem; opacity:0.8;">Auditoría de Asistencia</p>
     </div>
 
     <div class="content">
         <button id="btnStart" class="btn btn-gps" onclick="activarSensor()">🔓 VALIDAR UBICACIÓN</button>
-        <div id="geo-lock">SISTEMA ESPERANDO GPS</div>
+        <div id="geo-lock">SISTEMA BLOQUEADO</div>
 
         <div id="main-form">
-            <div>
-                <label>NOMBRE DEL EMPLEADO</label>
-                <select id="employee">
-                    <option value="">-- Selecciona tu nombre --</option>
-                    <option value="Empleado 1">Empleado 1</option>
-                    <option value="Empleado 2">Empleado 2</option>
-                    <option value="Empleado 3">Empleado 3</option>
-                </select>
-            </div>
+            <select id="employee">
+                <option value="">-- Selecciona tu nombre --</option>
+                <option value="Empleado 1">Empleado 1</option>
+                <option value="Empleado 2">Empleado 2</option>
+            </select>
 
-            <div id="action-btns" style="display:flex; flex-direction:column; gap:12px;">
+            <div id="action-btns" style="display:flex; flex-direction:column; gap:10px;">
                 <button class="btn btn-success" onclick="registrar('ENTRADA')">REGISTRAR ENTRADA</button>
-                <button class="btn btn-error" onclick="abrirObs()">REGISTRAR SALIDA</button>
+                <button class="btn btn-error" onclick="abrirSalida()">REGISTRAR SALIDA</button>
             </div>
 
-            <div id="obs-area">
-                <label>OBSERVACIONES DE SALIDA</label>
-                <textarea id="txtObs" rows="3" placeholder="Notas opcionales..."></textarea>
-                <button class="btn btn-error" onclick="registrar('SALIDA')">CONFIRMAR Y ENVIAR</button>
-                <button onclick="location.reload()" style="background:none; border:none; color:#888; text-decoration:underline; font-size:0.8rem; margin-top:10px;">Cancelar</button>
+            <div id="obs-area" style="display:none; flex-direction:column; gap:10px;">
+                <textarea id="txtObs" rows="2" placeholder="Notas de salida..."></textarea>
+                <button class="btn btn-error" onclick="registrar('SALIDA')">CONFIRMAR SALIDA</button>
             </div>
         </div>
     </div>
 </div>
 
-<div id="history-list" class="history-container"></div>
+<div class="history-container">
+    <p style="font-size: 0.8rem; color: #666; text-align: center;">Toca un registro para ver el reporte original</p>
+    <div id="history-list"></div>
+</div>
 
 <script>
-    const CONFIG = { 
-        lat: 18.906744582104, 
-        lon: -103.868403104, 
-        rango: 150, 
-        tel: "523339019091" 
-    };
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js');
-    }
-
-    window.addEventListener('offline', () => document.getElementById('offline-notice').style.display = 'block');
-    window.addEventListener('online', () => document.getElementById('offline-notice').style.display = 'none');
+    const CONFIG = { lat: 18.906744582104, lon: -103.868403104, rango: 150, tel: "523339019091" };
 
     function activarSensor() {
-        const lock = document.getElementById('geo-lock');
-        lock.innerHTML = "📡 BUSCANDO SATÉLITES...";
-        const options = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
-        navigator.geolocation.watchPosition(verificar, (err) => {
-            lock.innerHTML = "❌ ERROR: ACTIVA GPS";
-        }, options);
+        document.getElementById('geo-lock').innerHTML = "📡 BUSCANDO...";
+        navigator.geolocation.watchPosition(verificar, () => {}, { enableHighAccuracy: true });
     }
 
     function verificar(pos) {
@@ -116,13 +85,12 @@
         const lock = document.getElementById('geo-lock');
         const form = document.getElementById('main-form');
         document.getElementById('btnStart').style.display = "none";
-
         if (d <= CONFIG.rango) {
-            lock.innerHTML = `✅ EN EL NEGOCIO (${Math.round(d)}m)`;
+            lock.innerHTML = `✅ EN SITIO (${Math.round(d)}m)`;
             lock.className = "valid";
             form.style.display = "flex";
         } else {
-            lock.innerHTML = `📍 FUERA DE RANGO (${Math.round(d)}m)`;
+            lock.innerHTML = `📍 FUERA (${Math.round(d)}m)`;
             lock.className = "";
             form.style.display = "none";
         }
@@ -130,13 +98,13 @@
 
     function calcDist(lat1, lon1, lat2, lon2) {
         const R = 6371000;
-        const dLat = (lat2-lat1) * Math.PI/180;
-        const dLon = (lon2-lon1) * Math.PI/180;
+        const dLat = (lat2-lat1)*Math.PI/180;
+        const dLon = (lon2-lon1)*Math.PI/180;
         const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    function abrirObs() {
+    function abrirSalida() {
         if(!document.getElementById('employee').value) return alert("Selecciona tu nombre");
         document.getElementById('action-btns').style.display = "none";
         document.getElementById('obs-area').style.display = "flex";
@@ -149,60 +117,54 @@
         const ahora = new Date();
         const hora = ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const fecha = ahora.toLocaleDateString('es-MX', {day:'2-digit', month:'short'});
-        const ts = ahora.getTime();
         const obs = document.getElementById('txtObs').value || "Sin notas";
 
-        const reg = { emp, tipo, hora, fecha, obs, ts };
-        
-        // GUARDAR LOCALMENTE SIEMPRE
-        let logs = JSON.parse(localStorage.getItem('secu_vFinal')) || [];
+        // EL TEXTO "MAESTRO" QUE NO SE PUEDE MODIFICAR EN LA APP
+        const textoOriginal = `🏢 *LA SECU - ASISTENCIA*\n👤 ${emp}\n🔘 ${tipo}\n🕒 ${hora}\n📅 ${fecha}\n📝 Obs: ${obs}\n\n✅ _Validado GPS Offline_`;
+
+        // GUARDAR EN EL HISTORIAL DE AUDITORÍA
+        const reg = { emp, tipo, hora, fecha, textoOriginal, ts: ahora.getTime() };
+        let logs = JSON.parse(localStorage.getItem('secu_vAudit')) || [];
         logs.unshift(reg);
-        localStorage.setItem('secu_vFinal', JSON.stringify(logs.slice(0,30)));
+        localStorage.setItem('secu_vAudit', JSON.stringify(logs.slice(0,30)));
+        
         renderHistory();
 
-        // TEXTO DEL REPORTE
-        const texto = `🏢 *LA SECU - ASISTENCIA*\n\n👤 *${emp}*\n🔘 *MOVIMIENTO:* ${tipo}\n🕒 *HORA:* ${hora}\n📅 *FECHA:* ${fecha}\n📝 *OBS:* ${obs}\n\n✅ _Validado en sitio via GPS_`;
+        // COPIAR AL PORTAPAPELES
+        navigator.clipboard.writeText(textoOriginal);
 
-        // INTENTAR COPIAR AL PORTAPAPELES (Respaldo para iPhone Offline)
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(texto).then(() => {
-                if (!navigator.onLine) {
-                    alert("📍 REPORTE COPIADO.\nWhatsApp no puede pegar el mensaje automáticamente sin internet. Al abrir el chat, deja presionado y elige 'PEGAR'.");
-                }
-            });
-        }
-
-        // LANZAR WHATSAPP
-        const waUrl = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(texto)}`;
-        window.location.href = waUrl;
+        // ENVIAR A WHATSAPP
+        window.location.href = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(textoOriginal)}`;
     }
 
     function renderHistory() {
-        const logs = JSON.parse(localStorage.getItem('secu_vFinal')) || [];
-        const unMes = 30 * 24 * 60 * 60 * 1000;
-        const ahora = new Date().getTime();
-        const filtrados = logs.filter(l => (ahora - l.ts) < unMes);
-
-        document.getElementById('history-list').innerHTML = filtrados.map((l, i) => `
-            <div class="log-card">
-                <div>
-                    <span class="log-name">${l.emp}</span>
-                    <span class="log-meta">${l.fecha} | ${l.hora}</span>
+        const logs = JSON.parse(localStorage.getItem('secu_vAudit')) || [];
+        const lista = document.getElementById('history-list');
+        lista.innerHTML = logs.map((l, i) => `
+            <div class="log-card" onclick="toggleLog(${i})">
+                <div class="log-header">
+                    <div>
+                        <b style="font-size:0.9rem;">${l.emp}</b><br>
+                        <small style="color:#888;">${l.fecha} | ${l.hora}</small>
+                    </div>
+                    <span class="type-tag" style="background:${l.tipo=='ENTRADA'?'#d4edda':'#f8d7da'}; color:${l.tipo=='ENTRADA'?'#155724':'#721c24'}">${l.tipo}</span>
                 </div>
-                <div style="text-align:right">
-                    <span class="type-tag" style="color:${l.tipo=='ENTRADA'?'#25D366':'#e63946'}">${l.tipo}</span><br>
-                    <button class="btn-sync" onclick='reenviar(${i})'>Reenviar WA</button>
+                <div id="details-${i}" class="log-body">
+                    <b>Reporte Original:</b><br>${l.textoOriginal}
+                    <br><button onclick="event.stopPropagation(); reenviar(${i})" style="margin-top:10px; width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; background:white; font-size:0.7rem;">Reenviar a WhatsApp</button>
                 </div>
             </div>
         `).join('');
     }
 
-    function reenviar(idx) {
-        const logs = JSON.parse(localStorage.getItem('secu_vFinal')) || [];
-        const l = logs[idx];
-        const texto = `🏢 *LA SECU - ASISTENCIA*\n\n👤 *${l.emp}*\n🔘 *MOVIMIENTO:* ${l.tipo}\n🕒 *HORA:* ${l.hora}\n📅 *FECHA:* ${l.fecha}\n📝 *OBS:* ${l.obs}\n\n✅ _Validado GPS Offline_`;
-        
-        // Copiar también al reenviar por seguridad
+    function toggleLog(i) {
+        const el = document.getElementById(`details-${i}`);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function reenviar(i) {
+        const logs = JSON.parse(localStorage.getItem('secu_vAudit')) || [];
+        const texto = logs[i].textoOriginal;
         navigator.clipboard.writeText(texto);
         window.location.href = `https://wa.me/${CONFIG.tel}?text=${encodeURIComponent(texto)}`;
     }
