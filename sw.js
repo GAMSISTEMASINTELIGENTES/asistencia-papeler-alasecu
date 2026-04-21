@@ -24,6 +24,7 @@ self.addEventListener('activate', e => {
       )
     )
   );
+  return self.clients.claim();
 });
 
 // FETCH (clave para iPhone)
