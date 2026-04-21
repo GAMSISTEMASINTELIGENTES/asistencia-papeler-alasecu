@@ -1,4 +1,4 @@
-const CACHE_NAME = 'secu-pwa-v5';
+const CACHE_NAME = 'secu-pwa-v6';
 
 const assets = [
   '/',
