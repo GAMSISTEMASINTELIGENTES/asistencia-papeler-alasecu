@@ -1,4 +1,4 @@
-const CACHE_NAME = 'secu-pwa-v6';
+const CACHE_NAME = 'secu-pwa-v8';
 
 const assets = [
   '/',
@@ -28,15 +28,25 @@ self.addEventListener('activate', e => {
 });
 
 // FETCH (clave para iPhone)
-self.addEventListener('fetch', e => {
-  if (e.request.mode === 'navigate') {
-    // 👉 Siempre devuelve index.html para navegación
-    e.respondWith(
-      caches.match('/index.html')
+self.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Si hay internet, guarda nueva versión
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone));
+          return response;
+        })
+        .catch(() => {
+          // Si no hay internet, usa cache SIEMPRE
+          return caches.match('/index.html');
+        })
     );
-  } else {
-    e.respondWith(
-      caches.match(e.request).then(res => res || fetch(e.request))
-    );
+    return;
   }
+
+  event.respondWith(
+    caches.match(event.request).then(res => res || fetch(event.request))
+  );
 });
