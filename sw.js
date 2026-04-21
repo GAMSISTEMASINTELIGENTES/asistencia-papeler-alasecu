@@ -1,9 +1,12 @@
-const CACHE_NAME = 'secu-pwa-v4';
+const CACHE_NAME = 'secu-pwa-v5';
+
 const assets = [
-  './',
-  './index.html'
+  '/',
+  '/index.html',
+  '/logo.png'
 ];
 
+// INSTALACIÓN
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
@@ -11,16 +14,28 @@ self.addEventListener('install', e => {
   );
 });
 
+// ACTIVACIÓN
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(
-    keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-  )));
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
+      )
+    )
+  );
 });
 
+// FETCH (clave para iPhone)
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(res => {
-      return res || fetch(e.request);
-    })
-  );
+  if (e.request.mode === 'navigate') {
+    // 👉 Siempre devuelve index.html para navegación
+    e.respondWith(
+      caches.match('/index.html')
+    );
+  } else {
+    e.respondWith(
+      caches.match(e.request).then(res => res || fetch(e.request))
+    );
+  }
 });
